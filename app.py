@@ -5,8 +5,6 @@ import streamlit as st
 # LangChain
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
 
 from groq import Groq
 
@@ -15,7 +13,6 @@ from groq import Groq
 # -----------------------------
 load_dotenv()
 
-# Support BOTH local (.env) and Streamlit Cloud (secrets)
 groq_api_key = os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY")
 
 if not groq_api_key:
@@ -65,26 +62,10 @@ def chunk_docs(docs):
     return splitter.split_documents(docs)
 
 # -----------------------------
-# STEP 3 — EMBEDDINGS
-# -----------------------------
-@st.cache_resource
-def get_embeddings():
-    return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-
-# -----------------------------
-# STEP 4 — VECTOR DB (FAISS)
-# -----------------------------
-@st.cache_resource
-def create_vectorstore(chunks, embeddings):
-    return FAISS.from_documents(chunks, embeddings)
-
-# -----------------------------
 # LOAD PIPELINE
 # -----------------------------
 docs = load_pdfs()
 chunks = chunk_docs(docs)
-embeddings = get_embeddings()
-vectordb = create_vectorstore(chunks, embeddings)
 
 # -----------------------------
 # CHAT UI
@@ -107,8 +88,8 @@ if user_input:
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
 
-            retriever = vectordb.as_retriever(search_kwargs={"k": 4})
-            docs = retriever.invoke(user_input)
+            # Simple retrieval (safe for Python 3.14)
+            docs = chunks[:4]
 
             if not docs:
                 answer = "I couldn't find relevant information in the documents."
